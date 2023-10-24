@@ -9,118 +9,61 @@ import android.os.Message;
 import android.util.Log;
 import android.view.KeyEvent;
 import android.view.View;
+import android.widget.Button;
 import android.widget.EditText;
 import android.widget.TextView;
 
 import java.io.PrintStream;
 import java.lang.reflect.Method;
 
+
+
 public class MainActivity extends AppCompatActivity {
-    private Handler hOut;
-    private Handler hIn;
-    private TextView consoleWrite;
-    private EditText valuePrompt;
-    private AndroidOutputStream out;
-    private AndroidInputStream in;
-    private Method main;
-    private Class UserClass;
-    private Handler handler;
-    private MyThread myThread;
+    private EditText editText;
+    private EditText editText2;
+    private TextView textView;
+    private Button button;
 
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_main);
-        handler = new Handler(Looper.getMainLooper()) {
+
+        //В методе onCreate соедините созданные переменные с теми полями, что объявлены в разметке.
+        editText = findViewById(R.id.editText);
+        editText2 = findViewById(R.id.editText2);
+        textView = findViewById(R.id.textView);
+        button = findViewById(R.id.button);
+
+        // обработчик клика кнопки через OnClickListener
+        button.setOnClickListener(new View.OnClickListener() {
             @Override
-            public void handleMessage(@NonNull Message msg) {
-                String message = (String) msg.obj;
-                valuePrompt.setVisibility(View.VISIBLE);
-                valuePrompt.setText(message);
-                valuePrompt.setEnabled(false);
+            public void onClick(View v) {
+
+                // Объявим числовые переменные
+                double a,b,c;
+
+                // Считаем с editText и editText2 текстовые значения
+                String S1 = editText.getText().toString();
+                String S2 = editText2.getText().toString();
+
+                // Преобразуем текстовые переменные в числовые значения
+                a = Double.parseDouble(S1);
+                b = Double.parseDouble(S2);
+
+                // Проведем с числовыми переменными нужные действия
+                c = a + b;
+
+                // Преобразуем ответ в число
+                String s = Double.toString(c);
+
+                // Выведем текст в textView
+                textView.setText(s);
             }
-        };
-
-        hOut = new PrintoutHandler();
-        hIn = new ScanInHandler();
-        out = new AndroidOutputStream(hOut);
-        System.setOut(new PrintStream(out));
-        in = new AndroidInputStream(hIn);
-        System.setIn(in);
-
-        consoleWrite = findViewById(R.id.consoleWrite);
-        valuePrompt = findViewById(R.id.valuePrompt);
-        valuePrompt.setVisibility(View.GONE);
-
-        myThread = new MyThread();
-        myThread.setRunning(true);
-        myThread.start();
-
-        valuePrompt.setOnKeyListener((v, keyCode, event) -> {
-            if (event.getAction() == KeyEvent.ACTION_DOWN
-                    && (keyCode == KeyEvent.KEYCODE_ENTER)) {
-                String value = valuePrompt.getText().toString();
-                in.addString(value);
-                valuePrompt.setText("");
-                valuePrompt.setVisibility(View.INVISIBLE);
-                return true;
-            }
-            return false;
         });
-    }
 
-    private class ScanInHandler extends Handler {
-        public void handleMessage(Message msg) {
-            valuePrompt.setVisibility(View.VISIBLE);
-        }
-    }
-
-    private class PrintoutHandler extends Handler {
-        public void handleMessage(Message msg) {
-            // update TextView
-            String readText = consoleWrite.getText().toString();
-            consoleWrite.setText(readText + msg.obj);
-        }
-    }
-
-    public String doSlow() {
-        try {
-            UserClass = Class.forName("ru.samsung.itschool.mdev.lib.MyProgram");
-        } catch (ClassNotFoundException e) {
-            Log.e("Error",getString(R.string.user_program_not_found));
-        }
-        try {
-            main = UserClass.getDeclaredMethod("main", new String[0].getClass());
-        } catch (NoSuchMethodException e) {
-            Log.e("Error",getString(R.string.main_not_found));
-        }
-        try {
-            // USER PROGRAM START
-            main.invoke(null, new Object[]{new String[0]});
-        } catch (Throwable error) {
-            return getString(R.string.program_stopped);
-        }
-        return getString(R.string.program_finished);
     }
 
 
-    class MyThread extends Thread {
-        private boolean running;
-
-        public void setRunning(boolean running) {
-            this.running = running;
-        }
-
-        @Override
-        public void run() {
-            if(running) {
-                String result = doSlow();
-                Message msg = Message.obtain();
-                msg.obj = result;
-                msg.setTarget(handler);
-                msg.sendToTarget();
-            }
-        }
-    }
 }
